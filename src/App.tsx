@@ -48,7 +48,7 @@ const AuthContext = createContext<{
     isAuthenticated: false
 });
 
-const API_URL = '/api';
+const API_URL = 'https://api.goxprint.com/api';
 
 // ==================== MAIN APP ====================
 function App() {
