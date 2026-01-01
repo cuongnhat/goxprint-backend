@@ -1,0 +1,28 @@
+name = "goxprint-api"
+main = "worker/index.ts"
+compatibility_date = "2024-01-01"
+
+# R2 Bucket binding
+[[r2_buckets]]
+binding = "DRIVERS_BUCKET"
+bucket_name = "goxprint-drivers"
+
+# KV Namespace for metadata (sẽ tạo sau khi deploy)
+# [[kv_namespaces]]
+# binding = "DRIVERS_KV"
+# id = "your-kv-namespace-id"
+
+# Environment variables
+[vars]
+API_VERSION = "1.0.0"
+CORS_ORIGIN = "*"
+PUBLIC_URL = "https://download.goxprint.com"
+
+# Development settings
+[dev]
+port = 8787
+
+# Secrets (set via wrangler secret put)
+# R2_ACCESS_KEY_ID = "89b7a642f733ab802028e71f150ca6de"
+# R2_SECRET_ACCESS_KEY = "99ee87739e98f3e43acbb9af66a0274d3e06160612b5750bf295e4bf5b62e79f"
+# R2_ENDPOINT = "https://550d98d834457ea241cf4d14c126be97.r2.cloudflarestorage.com"

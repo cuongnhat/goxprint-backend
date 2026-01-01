@@ -1260,6 +1260,214 @@ function SettingsPage({ token }: { token: string }) {
                     </button>
                 </div>
             </div>
+
+            {/* Account Settings */}
+            <AccountSettings token={token} />
+        </div>
+    );
+}
+
+// Account Settings Component
+function AccountSettings({ token }: { token: string }) {
+    const { logout } = useContext(AuthContext);
+    const [oldPassword, setOldPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [changePasswordLoading, setChangePasswordLoading] = useState(false);
+
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newUsername, setNewUsername] = useState('');
+    const [changeUsernameLoading, setChangeUsernameLoading] = useState(false);
+
+    const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+    const handleChangePassword = async () => {
+        setAlert(null);
+
+        if (!oldPassword || !newPassword || !confirmPassword) {
+            setAlert({ type: 'error', message: 'Vui lòng điền đầy đủ thông tin!' });
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            setAlert({ type: 'error', message: 'Mật khẩu mới không khớp!' });
+            return;
+        }
+
+        if (newPassword.length < 4) {
+            setAlert({ type: 'error', message: 'Mật khẩu phải có ít nhất 4 ký tự!' });
+            return;
+        }
+
+        setChangePasswordLoading(true);
+
+        try {
+            const res = await fetch(`${API_URL}/auth/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ oldPassword, newPassword })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                setAlert({ type: 'success', message: data.message });
+                setOldPassword('');
+                setNewPassword('');
+                setConfirmPassword('');
+                // Logout after 2 seconds
+                setTimeout(() => {
+                    logout();
+                }, 2000);
+            } else {
+                setAlert({ type: 'error', message: data.error || 'Đổi mật khẩu thất bại!' });
+            }
+        } catch (error) {
+            setAlert({ type: 'error', message: 'Lỗi kết nối!' });
+        } finally {
+            setChangePasswordLoading(false);
+        }
+    };
+
+    const handleChangeUsername = async () => {
+        setAlert(null);
+
+        if (!currentPassword || !newUsername) {
+            setAlert({ type: 'error', message: 'Vui lòng điền đầy đủ thông tin!' });
+            return;
+        }
+
+        if (newUsername.length < 3) {
+            setAlert({ type: 'error', message: 'Username phải có ít nhất 3 ký tự!' });
+            return;
+        }
+
+        setChangeUsernameLoading(true);
+
+        try {
+            const res = await fetch(`${API_URL}/auth/change-username`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ password: currentPassword, newUsername })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                setAlert({ type: 'success', message: data.message });
+                setCurrentPassword('');
+                setNewUsername('');
+                // Logout after 2 seconds
+                setTimeout(() => {
+                    logout();
+                }, 2000);
+            } else {
+                setAlert({ type: 'error', message: data.error || 'Đổi username thất bại!' });
+            }
+        } catch (error) {
+            setAlert({ type: 'error', message: 'Lỗi kết nối!' });
+        } finally {
+            setChangeUsernameLoading(false);
+        }
+    };
+
+    return (
+        <div className="card">
+            <div className="card-header">
+                <h3>🔐 Tài Khoản</h3>
+            </div>
+
+            {alert && (
+                <div className={`alert alert-${alert.type}`}>
+                    {alert.type === 'success' ? '✅' : '❌'} {alert.message}
+                </div>
+            )}
+
+            <div className="card-body">
+                {/* Change Password */}
+                <h4 style={{ marginBottom: '1rem', color: '#64748b' }}>Đổi Mật Khẩu</h4>
+                <div className="form-group">
+                    <label>Mật khẩu cũ *</label>
+                    <input
+                        type="password"
+                        className="form-input"
+                        placeholder="••••••••"
+                        value={oldPassword}
+                        onChange={e => setOldPassword(e.target.value)}
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label>Mật khẩu mới *</label>
+                    <input
+                        type="password"
+                        className="form-input"
+                        placeholder="••••••••"
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label>Xác nhận mật khẩu *</label>
+                    <input
+                        type="password"
+                        className="form-input"
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
+                    />
+                </div>
+
+                <button
+                    className="btn btn-primary"
+                    onClick={handleChangePassword}
+                    disabled={changePasswordLoading}
+                    style={{ marginBottom: '2rem' }}
+                >
+                    {changePasswordLoading ? '⏳ Đang đổi...' : '🔐 Đổi Mật Khẩu'}
+                </button>
+
+                <hr style={{ margin: '2rem 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
+
+                {/* Change Username */}
+                <h4 style={{ marginBottom: '1rem', color: '#64748b' }}>Đổi Username</h4>
+                <div className="form-group">
+                    <label>Mật khẩu *</label>
+                    <input
+                        type="password"
+                        className="form-input"
+                        placeholder="••••••••"
+                        value={currentPassword}
+                        onChange={e => setCurrentPassword(e.target.value)}
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label>Username mới *</label>
+                    <input
+                        type="text"
+                        className="form-input"
+                        placeholder="superadmin"
+                        value={newUsername}
+                        onChange={e => setNewUsername(e.target.value)}
+                    />
+                </div>
+
+                <button
+                    className="btn btn-primary"
+                    onClick={handleChangeUsername}
+                    disabled={changeUsernameLoading}
+                >
+                    {changeUsernameLoading ? '⏳ Đang đổi...' : '👤 Đổi Username'}
+                </button>
+            </div>
         </div>
     );
 }

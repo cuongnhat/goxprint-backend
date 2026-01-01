@@ -199,12 +199,18 @@ function migrateFromJSON() {
     }
 }
 
+// MD5 Hash Helper
+function hashPassword(password) {
+    return crypto.createHash('md5').update(password).digest('hex');
+}
+
 // Initialize default data
 function initDB() {
     // Check if admin user exists
     const adminExists = sqlite.prepare('SELECT 1 FROM users WHERE username = ?').get('admin');
     if (!adminExists) {
-        sqlite.prepare('INSERT INTO users (id, username, password, display_name, role) VALUES (?, ?, ?, ?, ?)').run('admin-001', 'admin', 'admin123', 'Administrator', 'admin');
+        const hashedPassword = hashPassword('admin123');
+        sqlite.prepare('INSERT INTO users (id, username, password, display_name, role) VALUES (?, ?, ?, ?, ?)').run('admin-001', 'admin', hashedPassword, 'Administrator', 'admin');
     }
 
     // Check if jwt_secret exists
@@ -266,7 +272,21 @@ const db = {
 
     // User methods
     findUser(username, password) {
-        return sqlite.prepare('SELECT id, username, password, display_name as displayName, role FROM users WHERE username = ? AND password = ?').get(username, password);
+        const hashedPassword = hashPassword(password);
+        return sqlite.prepare('SELECT id, username, password, display_name as displayName, role FROM users WHERE username = ? AND password = ?').get(username, hashedPassword);
+    },
+
+    updateUserPassword(username, newPassword) {
+        const hashedPassword = hashPassword(newPassword);
+        return sqlite.prepare('UPDATE users SET password = ? WHERE username = ?').run(hashedPassword, username);
+    },
+
+    updateUsername(oldUsername, newUsername) {
+        return sqlite.prepare('UPDATE users SET username = ? WHERE username = ?').run(newUsername, oldUsername);
+    },
+
+    getUserByUsername(username) {
+        return sqlite.prepare('SELECT id, username, password, display_name as displayName, role FROM users WHERE username = ?').get(username);
     },
 
     // Driver methods
@@ -839,7 +859,75 @@ app.post('/api/auth/login', (req, res) => {
 app.post('/api/auth/logout', authMiddleware, (req, res) => {
     const token = req.headers.authorization.split(' ')[1];
     db.deleteSession(token);
-    res.json({ success: true });
+    res.json({ success: true, user: { username: req.user.username, displayName: req.user.displayName, role: req.user.role }, token });
+});
+
+// Change Password
+app.post('/api/auth/change-password', authMiddleware, (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    const username = req.user.username;
+
+    if (!oldPassword || !newPassword) {
+        return res.status(400).json({ error: 'Old password and new password required' });
+    }
+
+    if (newPassword.length < 4) {
+        return res.status(400).json({ error: 'New password must be at least 4 characters' });
+    }
+
+    // Verify old password
+    const user = db.findUser(username, oldPassword);
+    if (!user) {
+        return res.status(401).json({ error: 'Old password is incorrect' });
+    }
+
+    // Update password
+    db.updateUserPassword(username, newPassword);
+
+    // Invalidate current session
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token) {
+        db.deleteSession(token);
+    }
+
+    res.json({ success: true, message: 'Password changed successfully. Please login again.' });
+});
+
+// Change Username
+app.post('/api/auth/change-username', authMiddleware, (req, res) => {
+    const { password, newUsername } = req.body;
+    const currentUsername = req.user.username;
+
+    if (!password || !newUsername) {
+        return res.status(400).json({ error: 'Password and new username required' });
+    }
+
+    if (newUsername.length < 3) {
+        return res.status(400).json({ error: 'Username must be at least 3 characters' });
+    }
+
+    // Verify password
+    const user = db.findUser(currentUsername, password);
+    if (!user) {
+        return res.status(401).json({ error: 'Password is incorrect' });
+    }
+
+    // Check if new username already exists
+    const existingUser = db.getUserByUsername(newUsername);
+    if (existingUser && existingUser.username !== currentUsername) {
+        return res.status(400).json({ error: 'Username already exists' });
+    }
+
+    // Update username
+    db.updateUsername(currentUsername, newUsername);
+
+    // Update session
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token && sessions[token]) {
+        sessions[token].username = newUsername;
+    }
+
+    res.json({ success: true, message: 'Username changed successfully', newUsername });
 });
 
 // Get current user
