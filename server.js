@@ -574,10 +574,6 @@ function generateToken() {
     return crypto.randomBytes(32).toString('hex');
 }
 
-function hashPassword(password) {
-    return crypto.createHash('sha256').update(password + db.settings.jwt_secret).digest('hex');
-}
-
 function verifyToken(token) {
     return db.sessions[token];
 }
