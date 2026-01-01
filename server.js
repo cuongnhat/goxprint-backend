@@ -639,7 +639,20 @@ function formatSize(bytes) {
 
 // ==================== EXPRESS APP ====================
 const app = express();
-app.use(cors());
+
+// CORS configuration - Allow all origins for admin/frontend
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: false,
+    preflightContinue: false,
+    optionsSuccessStatus: 204
+}));
+
+// Handle preflight requests explicitly
+app.options('*', cors());
+
 app.use(express.json());
 
 // Serve driver files
