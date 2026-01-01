@@ -200,10 +200,6 @@ function migrateFromJSON() {
 }
 
 // MD5 Hash Helper
-function hashPassword(password) {
-    return crypto.createHash('md5').update(password).digest('hex');
-}
-
 // Initialize default data
 function initDB() {
     // Check if admin user exists
