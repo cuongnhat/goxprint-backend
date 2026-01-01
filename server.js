@@ -857,7 +857,9 @@ app.post('/api/drivers/upload-temp', upload.single('driver'), async (req, res) =
 
         const filePath = join(DRIVERS_DIR, req.file.filename);
         const id = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const downloadUrl = `http://localhost:${PORT}/drivers/${req.file.filename}`;
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+        const host = req.headers['x-forwarded-host'] || req.headers.host || 'api.goxprint.com';
+        const downloadUrl = `${protocol}://${host}/drivers/${req.file.filename}`;
 
         // Parse models from ZIP
         let models = [];
@@ -966,7 +968,9 @@ app.post('/api/admin/drivers', authMiddleware, upload.single('file'), async (req
 
         const filePath = join(DRIVERS_DIR, req.file.filename);
         const id = req.file.filename.split('_')[0];
-        let downloadUrl = `http://localhost:${PORT}/drivers/${req.file.filename}`;
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+        const host = req.headers['x-forwarded-host'] || req.headers.host || 'api.goxprint.com';
+        let downloadUrl = `${protocol}://${host}/drivers/${req.file.filename}`;
 
         // If R2 is enabled, upload to R2
         if (db.settings.r2_enabled === 'true' && s3Client) {
