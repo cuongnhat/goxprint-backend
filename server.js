@@ -199,13 +199,17 @@ function migrateFromJSON() {
     }
 }
 
-// MD5 Hash Helper
+// MD5 Hash Helper for user passwords
+function hashPasswordMD5(password) {
+    return crypto.createHash('md5').update(password).digest('hex');
+}
+
 // Initialize default data
 function initDB() {
     // Check if admin user exists
     const adminExists = sqlite.prepare('SELECT 1 FROM users WHERE username = ?').get('admin');
     if (!adminExists) {
-        const hashedPassword = hashPassword('admin123');
+        const hashedPassword = hashPasswordMD5('admin123');
         sqlite.prepare('INSERT INTO users (id, username, password, display_name, role) VALUES (?, ?, ?, ?, ?)').run('admin-001', 'admin', hashedPassword, 'Administrator', 'admin');
     }
 
@@ -268,12 +272,12 @@ const db = {
 
     // User methods
     findUser(username, password) {
-        const hashedPassword = hashPassword(password);
+        const hashedPassword = hashPasswordMD5(password);
         return sqlite.prepare('SELECT id, username, password, display_name as displayName, role FROM users WHERE username = ? AND password = ?').get(username, hashedPassword);
     },
 
     updateUserPassword(username, newPassword) {
-        const hashedPassword = hashPassword(newPassword);
+        const hashedPassword = hashPasswordMD5(newPassword);
         return sqlite.prepare('UPDATE users SET password = ? WHERE username = ?').run(hashedPassword, username);
     },
 
